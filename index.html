@@ -3,26 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Telomerase Interaction Lab</title>
+    <title>Telomerase Extension Lab</title>
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #fff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
         #app { position: relative; width: 100vw; height: 100vh; display: flex; flex-direction: column; align-items: center; user-select: none; -webkit-user-select: none; }
         
-        /* Header Labels */
-        .header { text-align: center; margin-top: 20px; line-height: 1.1; z-index: 10; }
-        .t-main { font-size: 20px; font-weight: 600; color: #000; letter-spacing: -0.5px; }
-        .t-sub { font-size: 13px; color: rgba(0,0,0,0.45); margin-top: 4px; font-weight: 500; } /* 30% smaller, 30% lighter */
+        .header { text-align: center; margin-top: 15px; line-height: 1.1; z-index: 10; flex-shrink: 0; }
+        .t-main { font-size: 18px; font-weight: 600; color: #000; letter-spacing: -0.5px; }
+        .t-sub { font-size: 10px; color: rgba(0,0,0,0.35); margin-top: 4px; font-weight: 500; }
 
-        #stage { width: 100%; height: 50%; touch-action: none; margin-top: 5px; }
+        /* Reduced Canvas Height */
+        #stage { width: 100%; height: 35%; touch-action: none; margin-top: 5px; }
         
-        /* Controls */
-        .controls { position: absolute; bottom: 8%; width: 100%; height: 110px; }
-        .btn-minimal { position: absolute; left: 50%; transform: translateX(-50%); bottom: 0; background: #fff; color: #555; border: 1px solid #ddd; padding: 10px 45px; border-radius: 2px; font-size: 13px; font-weight: 300; letter-spacing: 1px; cursor: pointer; transition: all 0.2s; -webkit-tap-highlight-color: transparent; }
-        .btn-minimal:active { background: #fafafa; border-color: #bbb; }
+        .controls { width: 100%; flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 10px; }
+        
+        .counter { font-size: 11px; color: #000; letter-spacing: 0.5px; font-weight: 600; margin-bottom: 30px; }
+        
+        .btn-minimal { background: #888; color: #fff; border: none; padding: 12px 50px; border-radius: 2px; font-size: 13px; font-weight: 400; letter-spacing: 1px; cursor: pointer; transition: all 0.2s; -webkit-tap-highlight-color: transparent; }
+        .btn-minimal:active { background: #666; transform: scale(0.98); }
         .btn-minimal:disabled { opacity: 0.3; }
 
-        .counter { position: absolute; left: 25px; bottom: 55px; font-size: 11px; color: #000; letter-spacing: 0.5px; font-weight: 600; }
-        .footer { position: absolute; bottom: 10px; width: 100%; text-align: center; font-size: 9px; color: #ccc; }
+        .repeat-hint { font-size: 10px; color: #4CD964; margin-top: 10px; font-weight: bold; visibility: hidden; }
+
+        .footer { width: 100%; text-align: center; font-size: 10px; color: #aaa; margin-top: 40px; padding-bottom: 20px; }
     </style>
 </head>
 <body oncontextmenu="return false;">
@@ -37,11 +40,11 @@
         <canvas id="stage"></canvas>
 
         <div class="controls">
-            <div class="counter" id="repeatCounter">Repeats: 0</div>
+            <div class="counter" id="repeatCounter"># of repeats: 0</div>
             <button class="btn-minimal" id="extendBtn">Extend DNA</button>
+            <div class="repeat-hint" id="repeatHint">Sequence Complete. Tap to Restart.</div>
+            <div class="footer">All rights reserved</div>
         </div>
-
-        <div class="footer">All rights reserved</div>
     </div>
 
     <script>
@@ -55,13 +58,14 @@
         const ctx = canvas.getContext('2d');
         const btn = document.getElementById('extendBtn');
         const counterEl = document.getElementById('repeatCounter');
+        const hintEl = document.getElementById('repeatHint');
         
         let dpr = window.devicePixelRatio || 1;
         let w, h, midY;
         
         const DNA_THICKNESS = 4;
-        const STRAND_GAP = 14; 
-        const BASE_SIZE = 18; 
+        const STRAND_GAP = 12; 
+        const BASE_SIZE = 14; // Smaller for 3 repeats to fit mobile
         
         let state = "IDLE"; 
         let extension = 0;
@@ -69,16 +73,15 @@
         let telomeraseX = -500;
         let currentBasesCount = 0;
         let lastSynthTime = 0;
+        let currentCycle = 1;
 
         const baseColors = { 'T': '#FFCC00', 'A': '#FF3B30', 'G': '#4CD964', 'C': '#5AC8FA', 'U': '#FF5E00' };
-        // DNA Sequence 5' to 3'
-        const dnaPattern = ['T','T','A','G','G','G','T','A','G','G','G','T'];
-        // RNA Template 3' to 5'
+        const dnaPattern = ['T','T','A','G','G','G','T','A','G','G','G','T','A','G','G','G','T'];
         const rnaPattern = ['A','A','U','C','C','C','A'];
 
         function init() {
             w = canvas.width = window.innerWidth * dpr;
-            h = canvas.height = (window.innerHeight * 0.5) * dpr;
+            h = canvas.height = (window.innerHeight * 0.35) * dpr;
             ctx.scale(dpr, dpr);
             midY = (h / dpr) / 2;
         }
@@ -87,42 +90,37 @@
             ctx.save();
             ctx.translate(x, y); 
 
-            // Shape adjustments: Right -5%, Top -5%, Bottom -8%
             ctx.beginPath();
             ctx.moveTo(0, 0);
-            ctx.bezierCurveTo(-60, -47, 100, -104, 228, -57); 
-            ctx.bezierCurveTo(275, -10, 256, 92, 161, 101);  
-            ctx.bezierCurveTo(70, 110, -40, 82, -30, 0);
+            ctx.bezierCurveTo(-40, -35, 80, -80, 180, -45); 
+            ctx.bezierCurveTo(220, -10, 200, 70, 130, 80);  
+            ctx.bezierCurveTo(50, 90, -30, 60, -25, 0);
             ctx.closePath();
             
-            ctx.fillStyle = "rgba(245, 245, 245, 0.8)"; 
+            ctx.fillStyle = "rgba(245, 245, 245, 0.9)"; 
             ctx.fill();
             ctx.strokeStyle = "rgba(40, 40, 40, 1)";
-            ctx.lineWidth = 1.2;
+            ctx.lineWidth = 1;
             ctx.stroke();
 
-            // RNA Ribbon (20px gentles extensions)
-            const rnaX = 20; 
-            const rnaY = 24; 
-            const rnaW = 126;
+            const rnaX = 15; 
+            const rnaY = 18; 
+            const rnaW = 7 * BASE_SIZE;
             
             ctx.beginPath();
             ctx.strokeStyle = "#8E44AD";
             ctx.lineWidth = 2.5;
-            // Left Ribbon
             ctx.moveTo(rnaX - 20, rnaY + 10);
             ctx.quadraticCurveTo(rnaX - 10, rnaY, rnaX, rnaY);
-            // Main
             ctx.lineTo(rnaX + rnaW, rnaY);
-            // Right Ribbon
             ctx.quadraticCurveTo(rnaX + rnaW + 10, rnaY, rnaX + rnaW + 20, rnaY + 10);
             ctx.stroke();
 
             ctx.fillStyle = "#8E44AD";
-            ctx.font = "bold 11px Arial";
+            ctx.font = "bold 9px Arial";
             ctx.textAlign = "center";
             rnaPattern.forEach((base, i) => {
-                ctx.fillText(base, rnaX + (i * BASE_SIZE) + (BASE_SIZE/2), rnaY + 15);
+                ctx.fillText(base, rnaX + (i * BASE_SIZE) + (BASE_SIZE/2), rnaY + 12);
             });
             ctx.restore();
         }
@@ -131,14 +129,14 @@
             ctx.fillStyle = baseColors[type];
             ctx.fillRect(x - BASE_SIZE/2, y - BASE_SIZE/2, BASE_SIZE, BASE_SIZE);
             ctx.fillStyle = "#fff";
-            ctx.font = "bold 11px Arial";
+            ctx.font = "bold 9px Arial";
             ctx.textAlign = "center";
-            ctx.fillText(type, x, y + 4);
+            ctx.fillText(type, x, y + 3.5);
         }
 
         function render() {
             ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
-            const templateLen = 140;
+            const templateLen = 60;
 
             ctx.strokeStyle = "#000";
             ctx.lineWidth = DNA_THICKNESS;
@@ -146,19 +144,18 @@
             ctx.font = "bold 10px Arial";
             ctx.textAlign = "center";
 
-            // 1. UPPER STRAND (Shifted Right 20px, Down 10px)
+            // 1. UPPER STRAND (Down 10px, Swap 3'->5')
             const uY = midY - STRAND_GAP + 10;
             const uStart = 20;
-            const uEnd = uStart + 100;
+            const uEnd = uStart + 60;
             ctx.beginPath();
             ctx.moveTo(uStart, uY);
             ctx.lineTo(uEnd, uY);
             ctx.stroke();
-            // Labels swap 3' -> 5'
-            ctx.fillText("3'", uStart + 8, uY - 10);
-            ctx.fillText("5'", uEnd - 8, uY - 10);
+            ctx.fillText("3'", uStart + 6, uY - 8);
+            ctx.fillText("5'", uEnd - 6, uY - 8);
 
-            // 2. LOWER STRAND (Shifted Left 20px)
+            // 2. LOWER STRAND (Left 20px, Swap 5'->3')
             const lY = midY + STRAND_GAP;
             const lStart = 20;
             const lEnd = lStart + templateLen + extension;
@@ -166,63 +163,60 @@
             ctx.moveTo(lStart, lY);
             ctx.lineTo(lEnd, lY);
             ctx.stroke();
-            // Labels swap 5' -> 3' (+7px right)
-            ctx.fillText("5'", lStart + 8, lY + 18);
-            ctx.fillText("3'", lEnd + 15, lY + 18);
+            ctx.fillText("5'", lStart + 6, lY + 15);
+            ctx.fillText("3'", lEnd + 15, lY + 15);
 
             // 3. BASES
-            const boxY = lY + 5.5; 
+            const boxY = lY + 4; 
             const synthStart = lStart + templateLen;
             for(let i = 0; i < currentBasesCount; i++) {
                 drawBaseBox(dnaPattern[i], synthStart + (i * BASE_SIZE) + (BASE_SIZE/2), boxY);
             }
 
-            // --- ANIMATION ENGINE (REDUCED TIMING) ---
+            // --- ANIMATION ENGINE ---
             const now = Date.now();
             if (state === "MOVE_IN") {
-                let targetX = synthStart - 20;
-                telomeraseX += (targetX - telomeraseX) * 0.08; // Accelerated docking
-                if (Math.abs(telomeraseX - targetX) < 1) { 
-                    state = "SYNTH_1"; 
-                    lastSynthTime = now; 
-                }
+                let targetX = synthStart - 15;
+                telomeraseX += (targetX - telomeraseX) * 0.12; 
+                if (Math.abs(telomeraseX - targetX) < 1) { state = "SYNTH"; lastSynthTime = now; }
             } 
-            else if (state === "SYNTH_1") {
-                if (now - lastSynthTime > 200) { // Accelerated synthesis interval
+            else if (state === "SYNTH") {
+                if (now - lastSynthTime > 150) {
                     currentBasesCount++;
                     extension += BASE_SIZE;
                     lastSynthTime = now;
-                    if (currentBasesCount === 6) { repeats = 1; counterEl.innerText = "Repeats: 1"; }
-                    if (currentBasesCount === 7) state = "TRANSLOCATE";
+                    // Count repeats based on TTAGGG (6 bases)
+                    if (currentBasesCount === 6 || currentBasesCount === 12 || currentBasesCount === 18) {
+                        repeats++;
+                        counterEl.innerText = `# of repeats: ${repeats}`;
+                    }
+                    // Step after cycle (7, 12, 17)
+                    if (currentBasesCount === 7 || currentBasesCount === 12) state = "TRANSLOCATE";
+                    if (currentBasesCount === 17) {
+                        state = "IDLE";
+                        btn.disabled = false;
+                        btn.innerText = "Restart Extension";
+                        hintEl.style.visibility = "visible";
+                    }
                 }
             } 
             else if (state === "TRANSLOCATE") {
-                let targetX = (synthStart + (currentBasesCount - 1) * BASE_SIZE) - 20;
-                telomeraseX += (targetX - telomeraseX) * 0.06; // Accelerated right movement
-                if (Math.abs(telomeraseX - targetX) < 0.5) { 
-                    state = "SYNTH_2"; 
-                    lastSynthTime = now; 
-                }
-            }
-            else if (state === "SYNTH_2") {
-                if (now - lastSynthTime > 200) {
-                    currentBasesCount++;
-                    extension += BASE_SIZE;
-                    lastSynthTime = now;
-                    if (currentBasesCount === 11) { repeats = 2; counterEl.innerText = "Repeats: 2"; }
-                    if (currentBasesCount === 12) state = "IDLE";
-                }
+                let targetX = (synthStart + (currentBasesCount - 1) * BASE_SIZE) - 15;
+                telomeraseX += (targetX - telomeraseX) * 0.1; 
+                if (Math.abs(telomeraseX - targetX) < 0.5) { state = "SYNTH"; lastSynthTime = now; }
             }
 
-            if (state !== "IDLE") drawEnzyme(telomeraseX, boxY);
+            if (state !== "IDLE") drawEnzyme(telomeraseX, boxY - 5);
             requestAnimationFrame(render);
         }
 
         btn.addEventListener('click', () => {
             if (state !== "IDLE") return;
             btn.disabled = true;
+            btn.innerText = "Extending...";
+            hintEl.style.visibility = "hidden";
             extension = 0; repeats = 0; currentBasesCount = 0;
-            counterEl.innerText = "Repeats: 0";
+            counterEl.innerText = "# of repeats: 0";
             state = "MOVE_IN";
             telomeraseX = -300;
         });
