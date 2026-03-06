@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Telomerase Lab - Biology@RI</title>
+    <title>Telomerase Interaction Lab</title>
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #fff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
         #app { position: relative; width: 100vw; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: space-between; overflow: hidden; }
@@ -12,19 +12,19 @@
         .t-main { font-size: 22px; font-weight: 600; color: #000; letter-spacing: -0.5px; }
         .t-sub { font-size: 11px; color: rgba(0,0,0,0.5); margin-top: 4px; font-weight: 500; letter-spacing: 1px; }
 
-        #stage { width: 100%; height: 35%; touch-action: none; }
+        #stage { width: 100%; height: 38%; touch-action: none; }
         
         .controls { width: 100%; flex-grow: 1; display: flex; flex-direction: column; align-items: center; position: relative; padding-top: 5px; }
         .counter { font-size: 12px; color: #000; font-weight: 700; margin-bottom: 15px; }
         
-        /* Functional Block: Pause & Restart */
-        .func-block { position: absolute; right: 5px; top: 0; display: flex; flex-direction: column; gap: 8px; }
+        /* Functional Block: Pause & Restart - Shifted 0.5cm (approx 20px) to left */
+        .func-block { position: absolute; right: 25px; top: 0; display: flex; flex-direction: column; gap: 8px; }
         #pauseBtn, #restartIconBtn { width: 38px; height: 38px; cursor: pointer; display: flex; align-items: center; justify-content: center; background: #fff; border: 2px solid #000; border-radius: 6px; box-sizing: border-box; }
         .p-icon { width: 10px; height: 12px; border-left: 3px solid #000; border-right: 3px solid #000; }
         .play-icon { width: 0; height: 0; border-top: 6px solid transparent; border-bottom: 6px solid transparent; border-left: 10px solid #000; margin-left: 2px; }
         .r-icon { font-size: 18px; font-weight: bold; color: #000; }
 
-        .btn-minimal { background: #888; color: #fff; border: none; padding: 12px 30px; border-radius: 4px; font-size: 13px; font-weight: 600; letter-spacing: 0.5px; cursor: pointer; transition: all 0.2s; -webkit-tap-highlight-color: transparent; min-width: 240px; }
+        .btn-minimal { background: #888; color: #fff; border: none; padding: 12px 30px; border-radius: 4px; font-size: 13px; font-weight: 600; letter-spacing: 0.5px; cursor: pointer; transition: all 0.2s; -webkit-tap-highlight-color: transparent; min-width: 250px; }
         .btn-minimal:active { background: #666; transform: scale(0.98); }
 
         .hint { font-size: 13px; color: #666; margin-bottom: 10px; font-weight: 600; height: 18px; text-align: center; }
@@ -59,7 +59,7 @@
 
     <script>
     (function(){
-        // --- SECURITY ---
+        // Security Lock
         document.onkeydown = (e) => { if (e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74 || e.keyCode == 67)) || (e.ctrlKey && e.keyCode == 85)) return false; };
 
         const canvas = document.getElementById('stage');
@@ -85,16 +85,16 @@
         let ext = 0, repeats = 0, telX = -400, enzO = 1, priO = 0, bCount = 0, dsCount = 0;
         let lastT = 0, priT = 0, priV = false;
 
-        // Colors darkened by 30% for high visibility
+        // Darkened Colors (30% reduction in lightness)
         const colors = { 'T': '#B28E00', 'A': '#B22921', 'G': '#359746', 'C': '#3F8CAF', 'U': '#B24200' };
-        const dna1 = ['T','T','A','G','G','G','T','T','A','G','G','G','T','T','A','G','G','G','T'];
+        const dna1 = ['T','T','A','G','G','G','T','T','A','G','G','G','T','T','A','G','G','G','T','T','A'];
         const dna2 = "TAAACCCTAAACCCTAA".split(""); 
         const dna2Final = ["G", "G"];
         const rnaTemplate = ['A','A','U','C','C','C','A'];
 
         function init() {
             w = canvas.width = window.innerWidth * dpr;
-            h = canvas.height = (window.innerHeight * 0.35) * dpr;
+            h = canvas.height = (window.innerHeight * 0.38) * dpr;
             ctx.scale(dpr, dpr);
             midY = (h / dpr) / 2;
             midX = (window.innerWidth / 2);
@@ -104,7 +104,9 @@
             ctx.save();
             ctx.globalAlpha = op;
             ctx.save();
-            ctx.translate(x, y - 5); 
+            // Telomerase shift right 0.1cm (+4px), shift up 0.2cm (-8px)
+            // Plus previous outline shift (total shift up 13px from base)
+            ctx.translate(x + 4, y - 13); 
             ctx.scale(0.85 * 0.9, 0.85); // Right area -10%
             ctx.beginPath();
             ctx.moveTo(0,0);
@@ -119,10 +121,10 @@
             ctx.stroke();
             ctx.restore();
 
-            // RNA Bases (Perpendicular 90deg)
+            // RNA Bases (Shifted with complex: right 4px, up 8px)
             const rX = 15; const rY = 18;
             ctx.save();
-            ctx.translate(x, y);
+            ctx.translate(x + 4, y - 8);
             ctx.scale(0.85, 0.85);
             ctx.fillStyle = "#8E44AD"; ctx.font = "bold 10px 'Courier New'"; ctx.textAlign = "center";
             rnaTemplate.forEach((base, i) => {
@@ -148,8 +150,8 @@
         function render() {
             ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
             
-            // Centralization logic: Shorten strands by 20px (0.5cm) on left
-            const startX = midX - 140; 
+            // Centralization: Group shift left 0.5cm (~20px)
+            const startX = midX - 140 - 20; 
             const templateL = 80; 
             const synthX = startX + templateL;
             
@@ -160,29 +162,29 @@
             ctx.beginPath(); ctx.moveTo(startX, uY); ctx.lineTo(startX + 60, uY); ctx.stroke();
             ctx.fillStyle = "#000"; ctx.font = "bold 10px Arial";
             ctx.fillText("3'", startX + 6, uY - 10);
-            ctx.fillStyle = (state === "DS_SYNTH" || state === "FINAL" || state === "PAUSE_SYNTH" || state === "GG_SYNTH") ? "#aaa" : "#000";
+            ctx.fillStyle = (state === "DS_SYNTH" || state === "FINAL" || state === "PAUSE_3S" || state === "GG_SYNTH" || state === "PAUSE_2S") ? "#aaa" : "#000";
             ctx.fillText("5'", startX + 75, uY - 10);
 
-            // Lower Strand (Extension)
+            // Lower Strand
             const lEnd = synthX + (bCount * UNIT_S);
             ctx.beginPath(); ctx.strokeStyle = "#000"; ctx.moveTo(startX, lY); ctx.lineTo(lEnd, lY); ctx.stroke();
             ctx.fillStyle = "#000";
             ctx.fillText("5'", startX + 6, lY + 18); ctx.fillText("3'", lEnd + 18, lY + 18);
 
-            // 1st Strand Nucleotides
+            // First Strand Extension
             for(let i=0; i<bCount; i++) {
                 drawBase(dna1[i % dna1.length], synthX + (i * UNIT_S) + (UNIT_S/2), lY + 4);
             }
 
-            // Orange Primer (RNA)
+            // RNA Primer (Orange)
             if(priV) {
                 const pLen = UNIT_S * 4;
-                const pX = (window.innerWidth - 15) - pLen;
+                const pX = (window.innerWidth - 35) - pLen; // Shifted left with group
                 ctx.save(); ctx.globalAlpha = priO; ctx.fillStyle = "#FF8C00";
                 ctx.fillRect(pX, uY - 4 - B_SIZE/2, pLen, B_SIZE); ctx.restore();
             }
 
-            // 2nd Strand Nucleotides (Right-to-Left)
+            // Second Strand Nucleotides (Right-to-Left)
             for(let i=0; i<dsCount; i++) {
                 const char = i < 17 ? dna2[i] : dna2Final[i-17];
                 const idx = (bCount - 1) - i;
