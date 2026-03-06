@@ -3,31 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Telomerase Lab</title>
+    <title>Telomerase Lab - Biology@RI</title>
     <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #fff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #fff; font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, Arial; }
         #app { position: relative; width: 100vw; height: 100vh; display: flex; flex-direction: column; align-items: center; user-select: none; -webkit-user-select: none; }
         
-        .header { text-align: center; margin-top: 20px; line-height: 1.2; z-index: 10; padding: 0 10px; }
-        /* Title in one sentence, reduced size by 20% from previous 33.8px (~27px) */
-        .t-main { font-size: 27px; font-weight: 600; color: #000; letter-spacing: -0.5px; }
-        .t-sub { font-size: 7px; color: rgba(0,0,0,0.28); margin-top: 4px; font-weight: 500; letter-spacing: 1px; }
+        .header { text-align: center; margin-top: 15px; line-height: 1.2; z-index: 10; width: 90%; }
+        /* First line reduced by 20%, Sub-heading enlarged 30% and darkened 20% */
+        .t-main { font-size: 21px; font-weight: 600; color: #000; letter-spacing: -0.2px; }
+        .t-sub { font-size: 14px; color: rgba(0,0,0,0.48); margin-top: 6px; font-weight: 700; letter-spacing: 0.5px; }
 
-        #stage { width: 100%; height: 35%; touch-action: none; margin-top: 10px; }
+        #stage { width: 100%; height: 45%; touch-action: none; margin-top: 10px; }
         
         .controls { width: 100%; flex-grow: 1; display: flex; flex-direction: column; align-items: center; position: relative; }
-        .counter { font-size: 12px; color: #000; letter-spacing: 0.5px; font-weight: 600; margin-bottom: 25px; }
+        .counter { font-size: 12px; color: #000; letter-spacing: 0.5px; font-weight: 600; margin-bottom: 20px; }
         
-        #pauseBtn { position: absolute; right: 10px; top: 15px; width: 30px; height: 30px; cursor: pointer; display: flex; align-items: center; justify-content: center; background: #fff; border: 1px solid #eee; border-radius: 4px; z-index: 20; }
-        .p-icon { width: 12px; height: 12px; border-left: 3px solid #333; border-right: 3px solid #333; }
-        .play-icon { width: 0; height: 0; border-top: 6px solid transparent; border-bottom: 6px solid transparent; border-left: 10px solid #333; margin-left: 2px; }
+        /* Functional Block: Pause and Restart */
+        .func-block { position: absolute; right: 5px; top: 0; display: flex; flex-direction: column; gap: 8px; }
+        #pauseBtn, #restartIconBtn { width: 38px; height: 38px; cursor: pointer; display: flex; align-items: center; justify-content: center; background: #fff; border: 2px solid #000; border-radius: 6px; box-sizing: border-box; }
+        .p-icon { width: 12px; height: 14px; border-left: 4px solid #000; border-right: 4px solid #000; }
+        .play-icon { width: 0; height: 0; border-top: 8px solid transparent; border-bottom: 8px solid transparent; border-left: 12px solid #000; margin-left: 4px; }
+        .r-icon { font-size: 20px; font-weight: bold; color: #000; }
 
-        .btn-minimal { background: #888; color: #fff; border: none; padding: 12px 35px; border-radius: 2px; font-size: 13px; font-weight: 400; letter-spacing: 0.5px; cursor: pointer; transition: all 0.2s; -webkit-tap-highlight-color: transparent; margin: 5px; min-width: 220px; }
-        .btn-minimal:active { background: #666; transform: scale(0.98); }
-        .btn-minimal:disabled { opacity: 0.3; }
+        .btn-minimal { background: #888; color: #fff; border: none; padding: 14px 30px; border-radius: 12px; font-size: 13px; font-weight: 500; letter-spacing: 0.5px; cursor: pointer; transition: all 0.2s; -webkit-tap-highlight-color: transparent; margin: 5px; min-width: 240px; }
+        .btn-minimal:active { background: #666; transform: scale(0.97); }
 
-        .hint { font-size: 13px; color: #888; margin-bottom: 10px; font-weight: 500; height: 18px; }
-        .footer { position: absolute; bottom: 10px; width: 100%; text-align: center; font-size: 10px; color: #aaa; }
+        .hint { font-size: 13px; color: #666; margin-bottom: 12px; font-weight: 600; height: 18px; text-align: center; }
+        .footer { position: absolute; bottom: 10px; width: 100%; text-align: center; font-size: 10px; color: #bbb; pointer-events: none; }
     </style>
 </head>
 <body oncontextmenu="return false;">
@@ -41,12 +43,16 @@
         <canvas id="stage"></canvas>
 
         <div class="controls">
-            <div id="pauseBtn" style="display:none;"><div class="p-icon" id="pIcon"></div></div>
+            <div class="func-block">
+                <div id="pauseBtn" style="display:none;"><div class="p-icon" id="pIcon"></div></div>
+                <div id="restartIconBtn" style="display:none;"><div class="r-icon">↺</div></div>
+            </div>
+            
             <div class="counter" id="repeatCounter"># of repeats: 0</div>
             <div class="hint" id="statusHint"></div>
             
             <button class="btn-minimal" id="extendBtn">Begin: extend DNA</button>
-            <button class="btn-minimal" id="continueBtn" style="display:none; background:#555;">Continue: convert to ds DNA</button>
+            <button class="btn-minimal" id="continueBtn" style="display:none; background:#444;">Continue: convert to ds DNA</button>
             <button class="btn-minimal" id="restartBtn" style="display:none; background:#aaa;">Restart</button>
         </div>
 
@@ -55,214 +61,186 @@
 
     <script>
     (function(){
-        // --- SECURITY: PREVENT INSPECTION & COPY ---
-        document.onkeydown = (e) => { if (e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74 || e.keyCode == 67)) || (e.ctrlKey && e.keyCode == 85)) return false; };
+        // Obfuscated Security Layer
+        const _0x1f = {
+            'm1': "MOVE_IN", 's1': "SYNTH", 't1': "TRANSLOCATE", 
+            'f1': "FADE_OUT", 'p1': "PRIMER", 'd1': "DS_SYNTH", 'e1': "DONE"
+        };
+        const _protect = () => {
+            document.addEventListener('contextmenu', e => e.preventDefault());
+            document.onkeydown = (e) => {
+                if (e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74 || e.keyCode == 67)) || (e.ctrlKey && e.keyCode == 85)) return false;
+            };
+        }; _protect();
 
         const canvas = document.getElementById('stage');
         const ctx = canvas.getContext('2d');
-        const btnExtend = document.getElementById('extendBtn');
-        const btnContinue = document.getElementById('continueBtn');
-        const btnRestart = document.getElementById('restartBtn');
-        const pauseBtn = document.getElementById('pauseBtn');
-        const pIcon = document.getElementById('pIcon');
         const counterEl = document.getElementById('repeatCounter');
         const hintEl = document.getElementById('statusHint');
+        const btnE = document.getElementById('extendBtn');
+        const btnC = document.getElementById('continueBtn');
+        const btnR = document.getElementById('restartBtn');
+        const pBtn = document.getElementById('pauseBtn');
+        const rIconBtn = document.getElementById('restartIconBtn');
+        const pIcon = document.getElementById('pIcon');
         
         let dpr = window.devicePixelRatio || 1;
-        let w, h, midY;
+        let w, h, midX;
         
-        const DNA_THICKNESS = 4;
-        const STRAND_GAP = 14; 
-        const BASE_SIZE = 14; 
-        const UNIT_SPACING = BASE_SIZE * 1.1; // 10% increase
+        const DNA_T = 4;
+        const GAP = 18; 
+        const B_SIZE = 16; 
+        const UNIT_S = B_SIZE * 1.1; 
         
-        let state = "IDLE"; 
-        let paused = false;
-        let extension = 0;
-        let dsBasesCount = 0;
-        let repeats = 0;
-        let telomeraseX = -500;
-        let enzymeOpacity = 1;
-        let primerOpacity = 0;
-        let currentBasesCount = 0;
-        let lastSynthTime = 0;
-        let primerStartTime = 0;
-        let primerVisible = false;
+        let _st = "IDLE", paused = false, extY = 0, dsC = 0, reps = 0, telY = -200, enzO = 1, priO = 0, bCount = 0, lT = 0, priT = 0, priV = false;
 
-        const baseColors = { 'T': '#FFCC00', 'A': '#FF3B30', 'G': '#4CD964', 'C': '#5AC8FA', 'U': '#FF5E00' };
-        // DNA Sequence (5' to 3')
-        const dnaPattern = ['T','T','A','G','G','G','T','T','A','G','G','G','T','T','A','G','G','G','T'];
-        // Complementary sequence (Synthesized right to left)
-        const dsPattern = ['A','A','T','C','C','C','A','A','T','C','C','C','A','A','T','C','C','C','A','C'];
+        const colors = { 'T': '#FFCC00', 'A': '#FF3B30', 'G': '#4CD964', 'C': '#5AC8FA', 'U': '#FF5E00' };
+        const dnaSeq = ['T','T','A','G','G','G','T'];
+        const dsSeq = ['A','A','T','C','C','C','A','A','T','C','C','C','A','A','T','C','C','C','A','C'];
+        const rnaSeq = ['A','A','U','C','C','C','A'];
 
         function init() {
             w = canvas.width = window.innerWidth * dpr;
-            h = canvas.height = (window.innerHeight * 0.35) * dpr;
+            h = canvas.height = (window.innerHeight * 0.45) * dpr;
             ctx.scale(dpr, dpr);
-            midY = (h / dpr) / 2;
+            midX = (window.innerWidth / 2);
         }
 
-        function drawEnzyme(x, y, opacity) {
+        function drawEnzyme(x, y, op) {
             ctx.save();
-            ctx.globalAlpha = opacity;
-            
-            // Enzyme Outline: Shifted 5px UP, reduced right side area by 10%
+            ctx.globalAlpha = op;
+            // Vertical Enzyme logic
             ctx.save();
-            ctx.translate(x, y - 5);
-            ctx.scale(0.86 * 0.9, 0.86); // Reduced right width by 10%
+            ctx.translate(x, y);
+            ctx.rotate(Math.PI / 2);
+            ctx.scale(0.8 * 0.9, 0.8); // 10% reduction on side
             ctx.beginPath();
-            ctx.moveTo(0, 0);
+            ctx.moveTo(0,0);
             ctx.bezierCurveTo(-40, -35, 80, -80, 200, -45); 
             ctx.bezierCurveTo(240, -10, 220, 70, 150, 80);  
             ctx.bezierCurveTo(50, 90, -30, 60, -25, 0);
             ctx.closePath();
-            ctx.fillStyle = "rgba(160, 160, 160, 0.45)"; 
+            ctx.fillStyle = "rgba(160, 160, 160, 0.4)"; 
             ctx.fill();
-            ctx.strokeStyle = "rgba(40, 40, 40, 1)";
-            ctx.lineWidth = 1.2;
+            ctx.strokeStyle = "#000";
+            ctx.lineWidth = 1;
             ctx.stroke();
             ctx.restore();
 
-            // RNA Ribbon: NOT shifted up, maintains vertical pairing
-            ctx.save();
-            ctx.translate(x, y);
-            ctx.scale(0.86, 0.86);
-            const rnaX = 15; const rnaY = 18; const rnaW = 7 * UNIT_SPACING;
-            ctx.beginPath();
-            ctx.strokeStyle = "#8E44AD"; ctx.lineWidth = 2.5;
-            ctx.moveTo(rnaX - 20, rnaY + 10); ctx.quadraticCurveTo(rnaX - 10, rnaY, rnaX, rnaY);
-            ctx.lineTo(rnaX + rnaW, rnaY); ctx.quadraticCurveTo(rnaX + rnaW + 10, rnaY, rnaX + rnaW + 20, rnaY + 10);
-            ctx.stroke();
-            
-            ctx.fillStyle = "#8E44AD"; ctx.font = "bold 9px 'Courier New', Courier, monospace"; ctx.textAlign = "center";
-            const rnaTemplate = ['A','A','U','C','C','C','A'];
-            rnaTemplate.forEach((base, i) => { 
-                // X matches DNA base X precisely (UNIT_SPACING)
-                ctx.fillText(base, rnaX + (i * UNIT_SPACING) + (UNIT_SPACING/2), rnaY + 12); 
+            // RNA Bases (Perfectly perpendicular)
+            const rX = x + 12; const rY = y + 10;
+            ctx.fillStyle = "#8E44AD"; ctx.font = "bold 10px 'Courier New'"; ctx.textAlign = "center";
+            rnaSeq.forEach((base, i) => {
+                ctx.fillText(base, rX, rY + (i * UNIT_S));
             });
             ctx.restore();
-            ctx.restore();
         }
 
-        function drawBaseBox(type, x, y, isPrimer=false, opacity=1, useGreyLabel=false) {
+        function drawBase(type, x, y, op=1, grey=false, isP=false) {
             ctx.save();
-            ctx.globalAlpha = opacity;
-            ctx.fillStyle = isPrimer ? "#FF8C00" : baseColors[type];
-            ctx.fillRect(x - BASE_SIZE/2, y - BASE_SIZE/2, BASE_SIZE, BASE_SIZE);
-            if(!isPrimer) {
-                ctx.fillStyle = useGreyLabel ? "#aaa" : "#fff"; 
-                ctx.font = "bold 9px 'Courier New', Courier, monospace"; 
-                ctx.textAlign = "center";
-                ctx.fillText(type, x, y + 3.5);
+            ctx.globalAlpha = op;
+            ctx.fillStyle = isP ? "#FF8C00" : colors[type];
+            ctx.fillRect(x - B_SIZE/2, y - B_SIZE/2, B_SIZE, B_SIZE);
+            if(!isP) {
+                ctx.fillStyle = grey ? "#aaa" : "#fff";
+                ctx.font = "bold 10px 'Courier New'"; ctx.textAlign = "center";
+                ctx.fillText(type, x, y + 4);
             }
             ctx.restore();
         }
 
-        function render() {
+        function engine() {
             ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
-            const lStart = 20; const templateLen = 80; const synthStart = lStart + templateLen;
-            ctx.lineCap = "butt"; // Remove black terminal rectangles
-
-            // 1. UPPER STRAND
-            const uY = midY - STRAND_GAP + 10; const uStart = 20; const uEndFixed = uStart + 60;
-            ctx.strokeStyle = "#000"; ctx.lineWidth = DNA_THICKNESS; ctx.beginPath();
-            ctx.moveTo(uStart, uY); ctx.lineTo(uEndFixed, uY); ctx.stroke();
+            const startY = 40; const templateL = 100; const synthY = startY + templateL;
             
-            ctx.fillStyle = "#000"; ctx.font = "bold 10px Arial"; ctx.textAlign = "center";
-            ctx.fillText("3'", uStart + 6, uY - 10);
+            // Vertical Strands
+            ctx.lineWidth = DNA_T; ctx.strokeStyle = "#000"; ctx.lineCap = "butt";
             
-            const isDS = (state === "DS_SYNTH" || state === "FINAL");
-            ctx.fillStyle = isDS ? "#aaa" : "#000";
-            ctx.fillText("5'", uEndFixed + 20, isDS ? uY - 17 : uY - 10);
+            // Strand A (Left Template)
+            const leftX = midX - GAP;
+            ctx.beginPath();
+            ctx.moveTo(leftX, startY);
+            ctx.lineTo(leftX, synthY + (bCount * UNIT_S));
+            ctx.stroke();
+            ctx.fillStyle = "#000"; ctx.font = "bold 10px Arial";
+            ctx.fillText("5'", leftX, startY - 10);
+            ctx.fillText("3'", leftX, synthY + (bCount * UNIT_S) + 18);
 
-            // 2. LOWER STRAND
-            const lY = midY + STRAND_GAP; const lEnd = lStart + templateLen + (currentBasesCount * UNIT_SPACING);
-            ctx.strokeStyle = "#000"; ctx.beginPath();
-            ctx.moveTo(lStart, lY); ctx.lineTo(lEnd, lY); ctx.stroke();
-            
-            ctx.fillStyle = "#000";
-            ctx.fillText("5'", lStart + 6, lY + 18); ctx.fillText("3'", lEnd + 22, lY + 18);
+            // Strand B (Right Short)
+            const rightX = midX + GAP;
+            const uEnd = startY + 60;
+            ctx.beginPath();
+            ctx.moveTo(rightX, startY);
+            ctx.lineTo(rightX, uEnd);
+            ctx.stroke();
+            ctx.fillText("3'", rightX, startY - 10);
+            ctx.fillStyle = (_st === "DS_SYNTH" || _st === "FINAL") ? "#aaa" : "#000";
+            ctx.fillText("5'", rightX, uEnd + 15);
 
-            // 3. BASES (Lower Strand - Extending)
-            const boxY = lY + 4; const dsBoxY = uY - 4;
-            for(let i = 0; i < currentBasesCount; i++) {
-                drawBaseBox(dnaPattern[i], synthStart + (i * UNIT_SPACING) + (UNIT_SPACING/2), boxY);
+            // Nucleotides
+            for(let i=0; i<bCount; i++) {
+                // DNA base center aligned 90 deg to counterpart
+                drawBase(dnaSeq[i%7], leftX, synthY + (i * UNIT_S) + (UNIT_S/2));
             }
 
-            // 4. PRIMER (Orange - Fades in over GGGT)
-            if(primerVisible) {
-                const pWidth = UNIT_SPACING * 4;
-                const margin2 = window.innerWidth * 0.02;
-                const pX = window.innerWidth - margin2 - pWidth;
-                ctx.save();
-                ctx.globalAlpha = primerOpacity;
-                ctx.fillStyle = "#FF8C00";
-                ctx.fillRect(pX, dsBoxY - BASE_SIZE/2, pWidth, BASE_SIZE);
-                ctx.restore();
+            if(priV) {
+                const pLen = UNIT_S * 4;
+                const pY = synthY + (bCount * UNIT_S) - pLen;
+                ctx.save(); ctx.globalAlpha = priO; ctx.fillStyle = "#FF8C00";
+                ctx.fillRect(rightX - B_SIZE/2, pY, B_SIZE, pLen); ctx.restore();
             }
 
-            // 5. DS SYNTHESIS (Upper Strand - Right to Left)
-            for(let i = 0; i < dsBasesCount; i++) {
-                const idx = (currentBasesCount - 1) - i;
-                const bx = synthStart + (idx * UNIT_SPACING) + (UNIT_SPACING/2);
-                drawBaseBox(dsPattern[i], bx, dsBoxY, false, 1, true);
+            for(let i=0; i<dsC; i++) {
+                const idx = (bCount - 1) - i;
+                drawBase(dsSeq[i%dsSeq.length], rightX, synthY + (idx * UNIT_S) + (UNIT_S/2), 1, true);
             }
 
-            // --- ANIMATION LOGIC ---
+            // Animation
             const now = Date.now();
-            if (!paused) {
-                if (state === "MOVE_IN") {
-                    let tX = synthStart - 15; telomeraseX += (tX - telomeraseX) * 0.08;
-                    if (Math.abs(telomeraseX - tX) < 1) { state = "SYNTH"; lastSynthTime = now; }
-                } 
-                else if (state === "SYNTH") {
-                    if (now - lastSynthTime > 400) { 
-                        currentBasesCount++; lastSynthTime = now;
-                        if (currentBasesCount % 7 === 0) {
-                            repeats = Math.min(3, Math.floor(currentBasesCount / 7));
-                            counterEl.innerText = `# of repeats: ${repeats}`;
-                            if(repeats < 3) state = "TRANSLOCATE";
-                            else { state = "FINISHED_EXT"; btnContinue.style.display = "block"; hintEl.innerText = "Sequence complete"; pauseBtn.style.display = "none"; }
+            if(!paused) {
+                if(_st === _0x1f.m1) {
+                    let target = synthY - 20; telY += (target - telY) * 0.08;
+                    if(Math.abs(telY - target) < 1) { _st = _0x1f.s1; lT = now; }
+                } else if(_st === _0x1f.s1) {
+                    if(now - lT > 520) { // 30% slower
+                        bCount++; lT = now;
+                        if(bCount % 7 === 0) {
+                            reps = Math.min(3, Math.floor(bCount/7));
+                            counterEl.innerText = `# of repeats: ${reps}`;
+                            if(reps < 3) _st = _0x1f.t1;
+                            else { 
+                                _st = "FINISHED"; btnC.style.display = "block"; pBtn.style.display = "none";
+                                hintEl.innerText = "synthesis of first strand complete"; 
+                            }
                         }
                     }
-                } 
-                else if (state === "TRANSLOCATE") {
-                    let tX = (synthStart + (currentBasesCount - 1) * UNIT_SPACING) - 15; telomeraseX += (tX - telomeraseX) * 0.08;
-                    if (Math.abs(telomeraseX - tX) < 1) { state = "SYNTH"; lastSynthTime = now; }
-                }
-                else if (state === "FADE_OUT_ENZYME") {
-                    enzymeOpacity -= 0.03; if (enzymeOpacity <= 0) { enzymeOpacity = 0; state = "PRIMER_IN"; }
-                }
-                else if (state === "PRIMER_IN") {
-                    primerVisible = true; primerOpacity += 0.05;
-                    if(primerOpacity >= 1) { state = "PRIMER_HOLD"; primerStartTime = now; }
-                }
-                else if (state === "PRIMER_HOLD") {
-                    if (now - primerStartTime > 4000) state = "PRIMER_OUT";
-                }
-                else if (state === "PRIMER_OUT") {
-                    primerOpacity -= 0.05;
-                    if(primerOpacity <= 0) { state = "DS_SYNTH"; lastSynthTime = now; }
-                }
-                else if (state === "DS_SYNTH") {
-                    if (now - lastSynthTime > 300) {
-                        dsBasesCount++; lastSynthTime = now;
-                        if (dsBasesCount >= currentBasesCount + 1) { state = "FINAL"; hintEl.innerText = "double stranded DNA formed"; btnRestart.style.display = "block"; }
+                } else if(_st === _0x1f.t1) {
+                    let target = synthY + (bCount - 1) * UNIT_S - 20; telY += (target - telY) * 0.08;
+                    if(Math.abs(telY - target) < 1) { _st = _0x1f.s1; lT = now; }
+                } else if(_st === _0x1f.f1) {
+                    enzO -= 0.03; if(enzO <= 0) { enzO = 0; _st = _0x1f.p1; priT = now; priV = true; }
+                } else if(_st === _0x1f.p1) {
+                    priO = Math.min(1, priO + 0.05);
+                    if(now - priT > 4000) _st = _0x1f.d1;
+                } else if(_st === _0x1f.d1) {
+                    priO = Math.max(0, priO - 0.05);
+                    if(now - lT > 400) {
+                        dsC++; lT = now;
+                        if(dsC >= bCount + 1) { _st = "FINAL"; hintEl.innerText = "double stranded DNA formed"; btnR.style.display = "block"; rIconBtn.style.display = "none"; }
                     }
                 }
             }
-
-            if (enzymeOpacity > 0 && telomeraseX > -400) drawEnzyme(telomeraseX, boxY - 5, enzymeOpacity);
-            requestAnimationFrame(render);
+            if(enzO > 0 && telY > -300) drawEnzyme(leftX - 10, telY, enzO);
+            requestAnimationFrame(engine);
         }
 
-        btnExtend.onclick = () => { state = "MOVE_IN"; btnExtend.style.display = "none"; pauseBtn.style.display = "flex"; telomeraseX = -300; };
-        btnContinue.onclick = () => { state = "FADE_OUT_ENZYME"; btnContinue.style.display = "none"; hintEl.innerText = "Synthesising complementary DNA"; };
-        btnRestart.onclick = () => location.reload();
-        pauseBtn.onclick = () => { paused = !paused; pIcon.className = paused ? "play-icon" : "pause-icon"; };
+        btnE.onclick = () => { _st = _0x1f.m1; btnE.style.display = "none"; pBtn.style.display = "flex"; rIconBtn.style.display = "flex"; };
+        btnC.onclick = () => { _st = _0x1f.f1; btnC.style.display = "none"; hintEl.innerText = "Synthesising complementary DNA"; };
+        btnR.onclick = rIconBtn.onclick = () => location.reload();
+        pBtn.onclick = () => { paused = !paused; pIcon.className = paused ? "play-icon" : "p-icon"; };
 
         window.addEventListener('resize', init);
-        init(); render();
+        init(); engine();
     })();
     </script>
 </body>
